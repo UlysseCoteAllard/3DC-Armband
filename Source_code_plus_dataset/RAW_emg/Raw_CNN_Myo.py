@@ -50,7 +50,7 @@ class Net(nn.Module):
         conv1 = self._dropout1(self._prelu1(self._batch_norm1(self._conv1(x))))
         pool1 = self._pool1(conv1)
         conv2 = self._dropout2(self._prelu2(self._batch_norm2(self._conv2(pool1))))
-        
+
         global_average_pool = self._global_average_pooling(conv2)
         flatten_tensor = global_average_pool.view(-1, 64)
         output = self._output(flatten_tensor)

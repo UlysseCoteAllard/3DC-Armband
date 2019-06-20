@@ -27,7 +27,7 @@ def applies_high_pass_for_dataset(dataset, frequency):
 
 def format_examples(emg_examples, load_myo_data, label=None):
     emg_examples_axes_swapped = np.swapaxes(emg_examples, 1, 0)
-    
+
     if load_myo_data:
         number_of_vector_per_example = 50  # equivalent to 250ms with a sampling rate of 200Hz.
         size_non_overlap = 5  # Original amount of overlap used with the Myo.
@@ -41,7 +41,7 @@ def format_examples(emg_examples, load_myo_data, label=None):
         emg_examples_swapped_and_filtered = []
         for five_seconds_data in emg_examples_axes_swapped:
             emg_examples_swapped_and_filtered.append(butter_highpass_filter(five_seconds_data, lowcut=20, fs=1000))
-    
+
     dataset_examples_to_format = []
     example = []
 
@@ -80,8 +80,6 @@ def get_example_in_middle(emg_data, load_myo_data):
 
     emg_examples_filtered = np.swapaxes(emg_examples_swapped_and_filtered, 1, 0)
     example = []
-    print("ALLO : ", np.shape(emg_examples_filtered))
-
     for i in range(int(len(emg_examples_filtered)/2), len(emg_examples_filtered)):
         emg_vector = emg_examples_filtered[i]
         if len(example) == 0:
@@ -120,7 +118,8 @@ def draw_example(example, myo_data):
     def signal_plot(x, y, **kwargs):
         ax = plt.gca()
         data = kwargs.pop("data")
-        data.plot(x=x, y=y, sharex=True, sharey=True, ax=ax, linewidth=10, grid=False, **kwargs)
+        #data.plot(x=x, y=y, sharex=True, sharey=True, ax=ax, linewidth=10, grid=False, **kwargs)
+        data.plot(x=x, y=y, sharex=True, sharey=True, ax=ax, linewidth=1, grid=False, **kwargs)
     g.map_dataframe(signal_plot, "Time", "val")
     g.set_ylabels("")
     g.set_xlabels("")
@@ -228,5 +227,5 @@ def read_data(path, load_myo_data):
 
 
 if __name__ == '__main__':
-    draw_examples(get_train_data=True, load_myo_data=False, path="../Dataset/Participant", participant_to_get=21,
-                  cycle_to_get=2, gesture_to_get=9)
+    draw_examples(get_train_data=True, load_myo_data=False, path="../Dataset/Participant", participant_to_get=12,
+                  cycle_to_get=3, gesture_to_get=5)

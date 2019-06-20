@@ -18,8 +18,9 @@ def scramble(examples, labels):
     return new_examples, new_labels
 
 
-def calculate_fitness_LDA_for_a_specific_number_of_cycles(examples_training, labels_training, examples_tests, labels_tests,
-                                                          nmbr_of_cycles_for_training):
+def calculate_fitness_LDA_for_a_specific_number_of_cycles(examples_training, labels_training, examples_tests,
+                                                          labels_tests,
+                                                          cycle_index):
     accuracy_for_all_participants = []
     predictions_for_all_participants = []
     ground_truth_for_all_participants = []
@@ -27,13 +28,12 @@ def calculate_fitness_LDA_for_a_specific_number_of_cycles(examples_training, lab
         X_train = []
         Y_train = []
 
-        for cycle in range(nmbr_of_cycles_for_training+1):  # Index start at 0
-            X_train.extend(examples_training[participant][cycle])
-            Y_train.extend(labels_training[participant][cycle])
+        X_train.extend(examples_training[participant][cycle_index])
+        Y_train.extend(labels_training[participant][cycle_index])
         X_train_scrambled, Y_train_scrambled = scramble(X_train, Y_train)
         lda = LinearDiscriminantAnalysis()
         lda.fit(X_train_scrambled, Y_train_scrambled)
-        
+
         X_test = []
         Y_test = []
         for cycle in range(0, 4):  # We necessarily have four cycles of test from the data
@@ -45,7 +45,6 @@ def calculate_fitness_LDA_for_a_specific_number_of_cycles(examples_training, lab
         ground_truth_for_all_participants.append(np.array(Y_test))
         accuracy_for_all_participants.append(accuracy)
     return accuracy_for_all_participants, predictions_for_all_participants, ground_truth_for_all_participants
-
 
 
 def calculate_fitness_3DC():
@@ -69,23 +68,22 @@ def calculate_fitness_3DC():
     train_examples, train_labels = datasets_training
     test_examples, test_labels = datasets_test
 
-    for cycle in range(0, 4):  # To get cycles: 0, 1, 2 and 3
+    for cycle in range(3, 4):  # To get cycles: 0, 1, 2 and 3
         accuracies, predictions_for_all_participants, ground_truth_for_all_participants = \
             calculate_fitness_LDA_for_a_specific_number_of_cycles(train_examples, train_labels, test_examples,
                                                                   test_labels, cycle)
-        print("ACCURACIES for " + str(cycle+1) + " cycle(s) : " + str(accuracies))
-        print("Average accuracies for " + str(cycle+1) + " cycle(s) : " + str(np.mean(accuracies)))
-        with open("../results/results_LDA_3DC_" + str(cycle+1) + "_cycles.txt", "a") as myfile:
+        print("ACCURACIES for " + str(cycle + 1) + " cycle(s) : " + str(accuracies))
+        print("Average accuracies for " + str(cycle + 1) + " cycle(s) : " + str(np.mean(accuracies)))
+        with open("../results/results_last_cycle_LDA_3DC_" + str(cycle + 1) + "_cycles.txt", "a") as myfile:
             myfile.write("LDA Best: \n\n")
             myfile.write(str(accuracies) + '\n')
             myfile.write(str(np.mean(accuracies)) + '\n')
             myfile.write('\n\n\n\n')
 
-        np.save("../results/pedictions_LDA_3DC_" + str(cycle+1) + "_cycles.npy",
+        np.save("../results/pedictions_last_cycle_LDA_3DC_" + str(cycle + 1) + "_cycles.npy",
                 np.array(predictions_for_all_participants))
-        np.save("../results/groundTruth_LDA_3DC_" + str(cycle+1) + "_cycles.npy",
+        np.save("../results/groundTruth_last_cycle_LDA_3DC_" + str(cycle + 1) + "_cycles.npy",
                 np.array(ground_truth_for_all_participants))
-
 
 
 def calculate_fitness_Myo():
@@ -107,19 +105,20 @@ def calculate_fitness_Myo():
 
     train_examples, train_labels = datasets_training
     test_examples, test_labels = datasets_test
-    for cycle in range(0, 4):  # To get cycles: 0, 1, 2 and 3
+    for cycle in range(3, 4):  # To get cycles: 0, 1, 2 and 3
         accuracies, predictions_for_all_participants, ground_truth_for_all_participants = \
             calculate_fitness_LDA_for_a_specific_number_of_cycles(train_examples, train_labels, test_examples,
                                                                   test_labels, cycle)
-        print("ACCURACIES for " + str(cycle+1) + " cycle(s) : " + str(accuracies))
-        print("Average accuracies for " + str(cycle+1) + " cycle(s) : " + str(np.mean(accuracies)))
-        with open("../results/results_MYO_LDA_" + str(cycle+1) + "_cycles.txt", "a") as myfile:
+        print("ACCURACIES for " + str(cycle + 1) + " cycle(s) : " + str(accuracies))
+        print("Average accuracies for " + str(cycle + 1) + " cycle(s) : " + str(np.mean(accuracies)))
+        with open("../results/results_last_cycle_MYO_LDA_" + str(cycle + 1) + "_cycles.txt", "a") as myfile:
             myfile.write("LDA Best: \n\n")
             myfile.write(str(accuracies) + '\n')
             myfile.write(str(np.mean(accuracies)) + '\n')
             myfile.write('\n\n\n\n')
-        np.save("../results/predictions_MYO_LDA_" + str(cycle+1) + "_cycles.npy", predictions_for_all_participants)
-        np.save("../results/groundTruth_MYO_LDA_" + str(cycle+1) + "_cycles.npy", ground_truth_for_all_participants)
+        np.save("../results/predictions_last_cycle_MYO_LDA_" + str(cycle + 1) + "_cycles.npy", predictions_for_all_participants)
+        np.save("../results/groundTruth_last_cycle_MYO_LDA_" + str(cycle + 1) + "_cycles.npy", ground_truth_for_all_participants)
+
 
 if __name__ == '__main__':
     calculate_fitness_3DC()

@@ -51,8 +51,12 @@ def calculate_fitness(examples_training, labels_training, examples_tests, labels
         accuracy_for_all_participants = []
 
     number_of_re_run = 20 - len(accuracy_for_all_participants)
+    predictions_for_all_participants = []
+    ground_truth_for_all_participants = []
     for _ in range(number_of_re_run):
         accuracy_test = []
+        predictions_participant = []
+        ground_truth_participant = []
         for participant in range(len(labels_training)):
             X_train = []
             Y_train = []
@@ -100,36 +104,41 @@ def calculate_fitness(examples_training, labels_training, examples_tests, labels
                 Y_test.extend(labels_tests[participant][cycle])
             X_test = np.expand_dims(X_test, axis=1)
             test = TensorDataset(torch.from_numpy(np.array(X_test, dtype=np.float32)),
-                                 torch.from_numpy(np.array(Y_test, dtype=np.int32)))
+                                 torch.from_numpy(np.array(Y_test, dtype=np.int64)))
 
-            test_loader = torch.utils.data.DataLoader(test, batch_size=1, shuffle=False)
+            test_loader = torch.utils.data.DataLoader(test, batch_size=256, shuffle=False)
 
             total = 0
             correct_prediction_test = 0
+            predictions = []
+            ground_truths = []
             for k, data_test_0 in enumerate(test_loader, 0):
                 # get the inputs
                 inputs_test, ground_truth_test = data_test_0
                 inputs_test, ground_truth_test = Variable(inputs_test.cuda()), Variable(ground_truth_test.cuda())
 
-
                 outputs_test_0 = cnn(inputs_test)
                 _, predicted = torch.max(outputs_test_0.data, 1)
-                correct_prediction_test += (mode(predicted.cpu().numpy())[0][0] ==
-                                            ground_truth_test.data.cpu().numpy()).sum()
+                correct_prediction_test += torch.sum(predicted == ground_truth_test.data)
+                predictions.extend(predicted.cpu().numpy())
+                ground_truths.extend(ground_truth_test.data.cpu().numpy())
                 total += ground_truth_test.size(0)
+            predictions_participant.append(predictions)
+            ground_truth_participant.append(ground_truths)
             print("ACCURACY TEST FINAL : %.3f %%" % (100 * float(correct_prediction_test) / float(total)))
             accuracy_test.append(100 * float(correct_prediction_test) / float(total))
             print("ACCURACY TEST RIGHT NOW : ", str(accuracy_test))
         accuracy_for_all_participants.append(accuracy_test)
         print("ACCURACY FOR ALL PARTICIPANTS RIGHT NOW : ", str(accuracy_for_all_participants))
-
+        predictions_for_all_participants.append(predictions_participant)
+        ground_truth_for_all_participants.append(ground_truth_participant)
         if training_with_myo:
             np.save("intermediate_results/Myo_results"+str(nmbr_of_cycles_for_training), accuracy_for_all_participants)
         else:
             np.save("intermediate_results/3DC_results"+str(nmbr_of_cycles_for_training), accuracy_for_all_participants)
 
     print("AVERAGE ACCURACY TEST 0 %.3f" % np.array(accuracy_for_all_participants).mean())
-    return accuracy_for_all_participants
+    return accuracy_for_all_participants, predictions_for_all_participants, ground_truth_for_all_participants
 
 
 def train_model(cnn, criterion, optimizer, scheduler, dataloaders, num_epochs=500, precision=1e-8):
@@ -217,11 +226,11 @@ def train_model(cnn, criterion, optimizer, scheduler, dataloaders, num_epochs=50
     return cnn
 
 
-def calculate_fitness_CWT_3DC():
+def calculate_fitness_RAW_3DC():
     # Comment between here
-
+    '''
     load_data_raw.read_data("../Dataset/Participant", load_myo_data=False)
-
+    '''
     # and here if the evaluation dataset was already processed and saved with "load_evaluation_dataset"
     import os
 
@@ -237,21 +246,26 @@ def calculate_fitness_CWT_3DC():
     test_examples, test_labels = datasets_test
 
     for cycle in range(0, 4):  # To get cycles: 1, 2, 3 and 4
-        accuracies = calculate_fitness(train_examples, train_labels, test_examples, test_labels, cycle,
-                                       training_with_myo=False)
+        accuracies, predictions_for_all_participants, ground_truth_for_all_participants = calculate_fitness(
+            train_examples, train_labels, test_examples, test_labels, cycle, training_with_myo=False)
         print("ACCURACIES for " + str(cycle+1) + " cycle(s) : " + str(accuracies))
         print("Average accuracies for " + str(cycle+1) + " cycle(s) : " + str(np.mean(accuracies)))
-        with open("../results/results_RAW_3DC_last_cycle_training_" + str(cycle+1) + "_cycles.txt", "a") as myfile:
+        with open("../results/results_RAW_3DC_cycle_" + str(cycle+1) + "_cycles.txt", "a") as myfile:
             myfile.write("RAW Best: \n\n")
             myfile.write(str(accuracies) + '\n')
             myfile.write(str(np.mean(accuracies)) + '\n')
             myfile.write('\n\n\n\n')
 
+        np.save("../results/predictions_RAW_3DC_" + str(cycle+1) + "_cycles.npy",
+                np.array(predictions_for_all_participants))
+        np.save("../results/groundTruth_RAW_3DC_" + str(cycle+1) + "_cycles.npy",
+                np.array(ground_truth_for_all_participants))
 
-def calculate_fitness_CWT_Myo():
+
+def calculate_fitness_RAW_Myo():
     # Comment between here
 
-    load_data_raw.read_data("../Dataset/Participant", load_myo_data=True)
+    #load_data_raw.read_data("../Dataset/Participant", load_myo_data=True)
 
     # and here if the evaluation dataset was already processed and saved wit    h "load_evaluation_dataset"
     import os
@@ -267,19 +281,22 @@ def calculate_fitness_CWT_Myo():
 
     train_examples, train_labels = datasets_training
     test_examples, test_labels = datasets_test
-    #test_examples, test_labels = [], []
     for cycle in range(0, 4):  # To get cycles: 1, 2, 3 and 4
-        accuracies = calculate_fitness(train_examples, train_labels, test_examples, test_labels, cycle,
-                                       training_with_myo=True)
+        accuracies, predictions_for_all_participants, ground_truth_for_all_participants = calculate_fitness(
+            train_examples, train_labels, test_examples, test_labels, cycle, training_with_myo=True)
         print("ACCURACIES for " + str(cycle+1) + " cycle(s) : " + str(accuracies))
         print("Average accuracies for " + str(cycle+1) + " cycle(s) : " + str(np.mean(accuracies)))
-        with open("../results/results_MYO_RAW_last_cycle_training_" + str(cycle+1) + "_cycles.txt", "a") as myfile:
+        with open("../results/results_MYO_RAW_cycle_" + str(cycle+1) + "_cycles.txt", "a") as myfile:
             myfile.write("RAW Best: \n\n")
             myfile.write(str(accuracies) + '\n')
             myfile.write(str(np.mean(accuracies)) + '\n')
             myfile.write('\n\n\n\n')
 
+        np.save("../results/predictions_RAW_MYO_" + str(cycle + 1) + "_cycles.npy",
+                np.array(predictions_for_all_participants))
+        np.save("../results/groundTruth_RAW_MYO_" + str(cycle + 1) + "_cycles.npy",
+                np.array(ground_truth_for_all_participants))
 
 if __name__ == '__main__':
-    calculate_fitness_CWT_Myo()
-    calculate_fitness_CWT_3DC()
+    calculate_fitness_RAW_Myo()
+    calculate_fitness_RAW_3DC()

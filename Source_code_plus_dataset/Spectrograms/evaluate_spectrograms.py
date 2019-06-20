@@ -51,8 +51,12 @@ def calculate_fitness(examples_training, labels_training, examples_tests, labels
         accuracy_for_all_participants = []
 
     number_of_re_run = 20 - len(accuracy_for_all_participants)
+    predictions_for_all_participants = []
+    ground_truth_for_all_participants = []
     for _ in range(number_of_re_run):
         accuracy_test = []
+        predictions_participant = []
+        ground_truth_participant = []
         for participant in range(len(labels_training)):
             X_train = []
             Y_train = []
@@ -107,6 +111,8 @@ def calculate_fitness(examples_training, labels_training, examples_tests, labels
 
             total = 0
             correct_prediction_test = 0
+            predictions = []
+            ground_truths = []
             for k, data_test_0 in enumerate(test_loader, 0):
                 # get the inputs
                 inputs_test, ground_truth_test = data_test_0
@@ -115,21 +121,26 @@ def calculate_fitness(examples_training, labels_training, examples_tests, labels
                 outputs_test_0 = cnn(inputs_test)
                 _, predicted = torch.max(outputs_test_0.data, 1)
                 correct_prediction_test += torch.sum(predicted == ground_truth_test.data)
+                predictions.extend(predicted.cpu().numpy())
+                ground_truths.extend(ground_truth_test.data.cpu().numpy())
                 total += ground_truth_test.size(0)
+            predictions_participant.append(predictions)
+            ground_truth_participant.append(ground_truths)
             accuracy = float(correct_prediction_test.item()/total)
             print("ACCURACY TEST FINAL : %.3f %%" % (100 * accuracy))
             accuracy_test.append(100 * accuracy)
             print("ACCURACY TEST RIGHT NOW : ", str(accuracy_test))
         accuracy_for_all_participants.append(accuracy_test)
         print("ACCURACY FOR ALL PARTICIPANTS RIGHT NOW : ", str(accuracy_for_all_participants))
-
+        predictions_for_all_participants.append(predictions_participant)
+        ground_truth_for_all_participants.append(ground_truth_participant)
         if training_with_myo:
             np.save("intermediate_results/Myo_results"+str(nmbr_of_cycles_for_training), accuracy_for_all_participants)
         else:
             np.save("intermediate_results/3DC_results"+str(nmbr_of_cycles_for_training), accuracy_for_all_participants)
 
     print("AVERAGE ACCURACY TEST 0 %.3f" % np.array(accuracy_for_all_participants).mean())
-    return accuracy_for_all_participants
+    return accuracy_for_all_participants, predictions_for_all_participants, ground_truth_for_all_participants
 
 
 def train_model(cnn, criterion, optimizer, scheduler, dataloaders, num_epochs=500, precision=1e-8):
@@ -256,15 +267,19 @@ def calculate_fitness_3DC():
 
     print(np.shape(train_examples[0][0]))
     for cycle in range(0, 4):  # To get cycles: 1, 2, 3 and 4
-        accuracies = calculate_fitness(train_examples, train_labels, test_examples, test_labels, cycle,
-                                       training_with_myo=False)
+        accuracies, predictions_for_all_participants, ground_truth_for_all_participants = calculate_fitness(train_examples, train_labels, test_examples, test_labels, cycle, training_with_myo=False)
         print("ACCURACIES for " + str(cycle+1) + " cycle(s) : " + str(accuracies))
         print("Average accuracies for " + str(cycle+1) + " cycle(s) : " + str(np.mean(accuracies)))
-        with open("../results/results_3DC_Spectrograms_last_cycle_training_" + str(cycle+1) + "_cycles.txt", "a") as myfile:
+        with open("../results/results_3DC_Spectrograms_" + str(cycle+1) + "_cycles.txt", "a") as myfile:
             myfile.write("SPECTROGRAMS Best: \n\n")
             myfile.write(str(accuracies) + '\n')
             myfile.write(str(np.mean(accuracies)) + '\n')
             myfile.write('\n\n\n\n')
+
+        np.save("../results/predictions_3DC_Spectrograms_" + str(cycle+1) + "_cycles.npy",
+                np.array(predictions_for_all_participants))
+        np.save("../results/groundTruth_3DC_Spectrograms_" + str(cycle+1) + "_cycles.npy",
+                np.array(ground_truth_for_all_participants))
 
 
 def calculate_fitness_Myo():
@@ -281,16 +296,19 @@ def calculate_fitness_Myo():
     test_examples, test_labels = load_data(get_myo=True, train_or_test="test_participant")
     print(np.shape(train_examples[0][0]))
     for cycle in range(0, 4):  # To get cycles: 1, 2, 3 and 4
-        accuracies = calculate_fitness(train_examples, train_labels, test_examples, test_labels, cycle,
-                                       training_with_myo=True)
+        accuracies, predictions_for_all_participants, ground_truth_for_all_participants = calculate_fitness(train_examples, train_labels, test_examples, test_labels, cycle, training_with_myo=True)
         print("ACCURACIES for " + str(cycle+1) + " cycle(s) : " + str(accuracies))
         print("Average accuracies for " + str(cycle+1) + " cycle(s) : " + str(np.mean(accuracies)))
-        with open("../results/results_MYO_Spectrograms_last_cycle_training_" + str(cycle+1) + "_cycles.txt", "a") as myfile:
+        with open("../results/results_MYO_Spectrograms_" + str(cycle+1) + "_cycles.txt", "a") as myfile:
             myfile.write("SPECTROGRAMS Best: \n\n")
             myfile.write(str(accuracies) + '\n')
             myfile.write(str(np.mean(accuracies)) + '\n')
             myfile.write('\n\n\n\n')
 
+        np.save("../results/predictions_MYO_Spectrograms_" + str(cycle + 1) + "_cycles.npy",
+                np.array(predictions_for_all_participants))
+        np.save("../results/groundTruth_MYO_Spectrograms_" + str(cycle + 1) + "_cycles.npy",
+                np.array(ground_truth_for_all_participants))
 
 if __name__ == '__main__':
     calculate_fitness_Myo()

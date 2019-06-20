@@ -96,8 +96,7 @@ def get_data_and_process_from_file(get_train_data, load_myo_data, path):
                     # each element of the list from a str to a float
                     emg_signal = np.float32(line.strip().split(","))
                     examples_to_format.append(emg_signal)
-                examples_formatted = format_examples(examples_to_format, load_myo_data=load_myo_data,
-                                                     label=gesture_index)
+                examples_formatted = format_examples(examples_to_format, load_myo_data=load_myo_data)
                 examples.extend(examples_formatted)
                 labels.extend(np.ones(len(examples_formatted)) * gesture_index)
             print(np.shape(examples))
